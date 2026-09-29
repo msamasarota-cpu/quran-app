@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qur'an Kiswahili</title>
+<style>
+body{font-family:sans-serif;background:#f5f5f5;margin:0;color:#111}
+header{background:#1B5E20;color:#fff;padding:14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
+header h1{font-size:17px;margin:0}
+header button{background:transparent;color:#fff;border:1px solid #fff;padding:5px 10px;border-radius:5px;font-size:13px}
+.container{max-width:800px;margin:auto;padding:12px}
+.s{background:#fff;padding:14px;border-radius:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.n{font-weight:bold;color:#1B5E20;margin-right:8px}
+.ar{font-size:19px;color:#1B5E20}
+small{color:#666;font-size:12px}
+.a{background:#fff;padding:16px;border-radius:12px;margin-bottom:14px}
+.an{display:inline-block;background:#C8E6C9;color:#1B5E20;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:bold}
+.ar2{font-size:26px;line-height:2;text-align:right;direction:rtl;margin:10px 0}
+.tr{font-size:15px;padding-top:8px;border-top:1px solid #eee}
+.act{margin-top:8px;text-align:right}
+.act button{background:transparent;border:1px solid #1B5E20;color:#1B5E20;padding:4px 10px;border-radius:5px;font-size:12px}
+.act button.on{background:#1B5E20;color:#fff}
+.ctrl{background:#fff;padding:10px;border-radius:10px;margin-bottom:10px}
+.load,.err{text-align:center;padding:40px;color:#666}
+</style>
+</head>
+<body>
+<header>
+<button id="bk" style="display:none" onclick="home()">← Rudi</button>
+<h1 id="t">Qur'an Tukufu</h1>
+<button onclick="bm()">Alamisho</button>
+</header>
+<div class="container" id="app"><div class="load">Inapakia...</div></div>
+<script>
+const API='https://api.alquran.cloud/v1',app=document.getElementById('app'),t=document.getElementById('t'),bk=document.getElementById('bk');
+let fs=28;
+async function list(){
+app.innerHTML='<div class="load">Inapakia sura...</div>';t.textContent="Qur'an Tukufu";bk.style.display='none';
+try{const r=await fetch(`${API}/surah`);const d=await r.json();
+app.innerHTML=d.data.map(s=>`<div class="s" onclick="open(${s.number},'${s.englishName.replace(/'/g,"\\'")}')"><div><span class="n">${s.number}.</span><b>${s.englishName}</b><br><small>Aya ${s.numberOfAyahs} • ${s.revelationType}</small></div><div class="ar">${s.name}</div></div>`).join('');
+}catch(e){app.innerHTML=`<div class="err">Hitilafu: ${e.message}<br><br><button onclick="list()">Jaribu tena</button></div>`}}
+async function open(n,name){
+app.innerHTML='<div class="load">Inapakia aya...</div>';t.textContent=name;bk.style.display='inline-block';
+try{const r=await fetch(`${API}/surah/${n}/editions/quran-uthmani,sw.barwani`);const d=await r.json();
+const ar=d.data[0].ayahs,sw=d.data[1].ayahs;
+const c=`<div class="ctrl">Ukubwa: <input type="range" min="18" max="44" value="${fs}" oninput="cf(this.value)"> <span id="fl">${fs}px</span></div>`;
+const a=ar.map((x,i)=>{const id=`${n}:${x.numberInSurah}`,sv=isBM(id);return `<div class="a"><span class="an">${n}:${x.numberInSurah}</span><div class="ar2" style="font-size:${fs}px">${x.text}</div><div class="tr">${sw[i].text}</div><div class="act"><button class="${sv?'on':''}" onclick="tg('${id}',this)">${sv?'Ondoa':'Hifadhi'}</button></div></div>`}).join('');
+app.innerHTML=c+a;
+}catch(e){app.innerHTML=`<div class="err">Hitilafu: ${e.message}</div>`}}
+function cf(v){fs=parseInt(v);document.getElementById('fl').textContent=fs+'px';document.querySelectorAll('.ar2').forEach(e=>e.style.fontSize=fs+'px')}
+function gb(){return JSON.parse(localStorage.getItem('bm')||'[]')}
+function sb(l){localStorage.setItem('bm',JSON.stringify(l))}
+function isBM(id){return gb().includes(id)}
+function tg(id,b){const l=gb(),i=l.indexOf(id);if(i>=0){l.splice(i,1);b.textContent='Hifadhi';b.classList.remove('on')}else{l.push(id);b.textContent='Ondoa';b.classList.add('on')}sb(l)}
+function bm(){const l=gb();t.textContent='Alamisho Yangu';bk.style.display='inline-block';
+if(!l.length){app.innerHTML='<div class="load">Hauna alamisho bado.</div>';return}
+app.innerHTML=l.map(id=>{const[s,a]=id.split(':');return `<div class="s"><div onclick="open(${s},'Sura ${s}')"><b>Sura ${s} — Aya ${a}</b></div><button onclick="rm('${id}')" style="background:transparent;border:1px solid #1B5E20;color:#1B5E20;padding:4px 10px;border-radius:5px">Ondoa</button></div>`}).join('')}
+function rm(id){sb(gb().filter(x=>x!==id));bm()}
+function home(){list()}
+list();
+</script>
+</body>
+</html>
